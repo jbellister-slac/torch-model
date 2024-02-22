@@ -1,0 +1,12 @@
+# conda env create -f environment.yml
+name: calibration-modules
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - botorch>=0.8.2
+  - ipykernel
+  - ipywidgets
+  - tqdm
+  - pandas
+  - matplotlib

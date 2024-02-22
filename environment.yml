@@ -2,8 +2,23 @@ name: torch-model
 channels:
   - conda-forge
 dependencies:
-  - prefect<2.0 # until lume-services registered with conda
-  - lume-model>=1.4 # until lume-services registered with conda
-  - pip 
-  - pip: 
-    - git+https://github.com/slaclab/lume-services.git@main
+  - prefect
+  - docker-py>=5.0
+  - tensorflow
+  - keras
+  - pydantic
+  - botorch>=0.8.2
+  - ipywidgets
+  - tqdm
+  - matplotlib
+  - jupyterlab
+  - ipykernel
+  - jupyter
+  - nb_conda_kernels
+  - pandas
+  - pip
+  - python=3.9
+  - xopt
+  - pip:
+    - git+https://github.com/slaclab/lume-model.git
+    - git+https://github.com/jbellister-slac/lume-services.git@prefect_2

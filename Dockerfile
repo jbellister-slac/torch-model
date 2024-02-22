@@ -1,9 +1,12 @@
 FROM condaforge/mambaforge AS build
 
+RUN apt-get update && \
+    apt-get install -y gcc git build-essential
+
 COPY environment.yml /torch-model/environment.yml
 
-RUN conda install -c conda-forge conda-pack && \
-  conda env create -f /torch-model/environment.yml
+RUN mamba install -c conda-forge conda-pack && \
+  mamba env create -f /torch-model/environment.yml
 
 # Use conda-pack to create a  enviornment in /venv:
 RUN conda-pack -n torch-model -o /tmp/env.tar && \
@@ -21,6 +24,7 @@ ENV PATH="${PATH}:/venv/bin"
 
 # Copy /venv from the previous stage:
 COPY --from=build /venv /venv
+COPY torch_model/flow.py /opt/prefect/torch_model/flow.py
 COPY . /torch-model
 
 SHELL ["/bin/bash", "-c"] 
@@ -35,6 +39,8 @@ RUN chmod +x /usr/local/bin/_entrypoint.sh
 
 RUN source /venv/bin/activate && \
   python -m pip install /torch-model
+
+WORKDIR /opt/prefect
 
 # When image is run, run the code with the environment
 # activated:
