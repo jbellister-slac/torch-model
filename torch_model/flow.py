@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from prefect import flow, get_run_logger, task
 
@@ -59,7 +59,7 @@ def evaluate(input_dict, lume_model=None, objective_model=None, vocs=None, gener
 
 
 @flow(name="torch-nn")
-def torch_nn_flow(model_parameters: Dict[str, any]):
+def torch_nn_flow(model_parameters: Dict[str, Any]):
     print('Starting Flow Run')
     # CONFIGURE LUME-SERVICES
     # see https://slaclab.github.io/lume-services/workflows/#configuring-flows-for-use-with-lume-services
