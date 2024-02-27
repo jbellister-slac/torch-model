@@ -40,7 +40,8 @@ RUN chmod +x /usr/local/bin/_entrypoint.sh
 RUN source /venv/bin/activate && \
   python -m pip install /torch-model
 
-WORKDIR /opt/prefect
+# Can probably be removed entirely since prefect overrides it
+WORKDIR /torch-model/torch_model
 
 # When image is run, run the code with the environment
 # activated:

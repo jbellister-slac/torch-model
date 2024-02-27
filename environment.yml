@@ -17,6 +17,7 @@ dependencies:
   - nb_conda_kernels
   - pandas
   - pip
+  - pyepics
   - python=3.9
   - xopt
   - pip:

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from prefect import flow, get_run_logger, task
 
@@ -17,7 +17,9 @@ from lume_model.variables import InputVariable, OutputVariable
 
 import torch
 import matplotlib.pyplot as plt
+import os
 import pandas as pd
+import subprocess
 import sys
 
 from xopt import Xopt, VOCS
@@ -26,7 +28,8 @@ from xopt.numerical_optimizer import LBFGSOptimizer
 from xopt.generators.bayesian import ExpectedImprovementGenerator
 from xopt.generators.bayesian.models.standard import StandardModelConstructor
 
-sys.path.append("calibration/calibration_modules/")
+flow_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(flow_dir, "calibration/calibration_modules/"))
 
 from calibration.calibration_modules.decoupled_linear import OutputOffset, DecoupledLinearOutput
 from utils import load_model, get_model_predictions, get_running_optimum
@@ -59,8 +62,9 @@ def evaluate(input_dict, lume_model=None, objective_model=None, vocs=None, gener
 
 
 @flow(name="torch-nn")
-def torch_nn_flow(model_parameters: Dict[str, Any]):
-    print('Starting Flow Run')
+def torch_nn_flow():
+    logger = get_run_logger()
+    logger.info(f'Starting flow run from: {flow_dir}')
     # CONFIGURE LUME-SERVICES
     # see https://slaclab.github.io/lume-services/workflows/#configuring-flows-for-use-with-lume-services
 
@@ -77,18 +81,26 @@ def torch_nn_flow(model_parameters: Dict[str, Any]):
     #     "QUAD:IN20:361:BCTRL", "QUAD:IN20:371:BCTRL", "QUAD:IN20:425:BCTRL",
     #     "QUAD:IN20:441:BCTRL", "QUAD:IN20:511:BCTRL", "QUAD:IN20:525:BCTRL",
     # ]
-    filename = "files/variables.csv"
+
+    pwd_result = subprocess.run(["pwd"], capture_output=True, text=True)
+    logger.info(f"Current directory: {pwd_result.stdout.strip()}")
+
+    ls_result = subprocess.run(["ls"], capture_output=True, text=True)
+    logger.info("Directory contents:")
+    logger.info(ls_result.stdout)
+
+    filename = os.path.join(flow_dir, "files/variables.csv")
     variable_ranges = pd.read_csv(filename, index_col=0, header=None).T.to_dict(orient='list')
     vocs = VOCS(
         variables={ele: variable_ranges[ele] for ele in variables},
         objectives={"total_size": "MINIMIZE"},
         constraints={"c1": ["LESS_THAN", 0.0]},
     )
-    print(vocs.as_yaml())
+    logger.info(vocs.as_yaml())
 
     objective_model = load_model(
         input_variables=vocs.variable_names,
-        model_path="lcls_cu_injector_nn_model/",
+        model_path=os.path.join(flow_dir, "lcls_cu_injector_nn_model/"),
     )
     lume_model = objective_model.model.model
 
@@ -99,7 +111,7 @@ def torch_nn_flow(model_parameters: Dict[str, Any]):
         y_offset_initial=torch.full((y_size,), -0.5),
         y_scale_initial=torch.ones(y_size),
     )
-    miscal_model.requires_grad_(False);
+    miscal_model.requires_grad_(False)
 
     # define prior mean
     prior_mean = OutputOffset(
@@ -111,7 +123,7 @@ def torch_nn_flow(model_parameters: Dict[str, Any]):
         for k in vocs.variable_names
     }
     vocs.variables["SOLN:IN20:121:BCTRL"] = [0.467, 0.479]
-    print(vocs.as_yaml())
+    logger.info(vocs.as_yaml())
 
     # remember to set use low noise prior to false!!!
     gp_constructor = StandardModelConstructor(
@@ -143,9 +155,9 @@ def torch_nn_flow(model_parameters: Dict[str, Any]):
         maximize=X.vocs.objectives[X.vocs.objective_names[0]].upper() == "MAXIMIZE",
     )
 
-    print("Done")
-    print(X)
-    print(opt)
+    logger.info("Done")
+    logger.info(X)
+    logger.info(opt)
 
 
     #return output_variables
